@@ -1,0 +1,410 @@
+
+                    ZILLOW_REGRESSION_PROJECT 
+--------------------------------------
+INTRODUCTION
+--------------------------------------
+
+As a Junior Data Scientist at Zillow develop a machine learning model that accurately identifies and predicts key drivers of single-unit
+ property values based off the transaction period of May -August 2017. Furthermore, develop and present a report of the distributions
+ for the tax rates in each county with a comparison analysis to overall tax rates in surrounding areas of each property. In this repository 
+ you will find all the tools necessary to recreate the steps taken to create a Lars Lasso and a Linear Regression Model with access to some potential key drivers of 
+ single unit property values. Additionally, steps were taken to further assist the zillow team with some data that was misplaced in an email.
+ This project further attends to Zillow's request by evaluating distributions of tax data to analyze the values relationship to single unit property values.
+ 
+
+
+
+----------------------------------------
+PROJECT GOAL
+----------------------------------------
+IDENTIFY KEY DRIVERS OF PROPERTY VALUE:
+-Develop and present a machine learning model that can predict the values of single unit properties that the tax district assesses using the property data from these properties with a transaction during what Zillow defines as “hot months” which is the period between May-August 2017. 
+-Identify key drivers of single unit property values 
+
+Provide additional information outside the model:
+- Calculations of property taxes at the county level 
+-Define county and state location for the properties
+-Present distributions outlining the tax rates for each county in comparison to the tax rates for all properties located in the area
+
+--------------------------------------------
+THE PROCESS: PROJECT PLANNING
+--------------------------------------------
+
+
+
+~IMPORTS UTILIZED TO RECREATE PROJECT:
+
+
+
+
+•	-Take an initial look at the Zillow data for the tables ‘Properties_2017’ and ‘Predictions_2017’ in my SQL, this data likely needs tidying 
+•	For the purposes of this project single unit property was defined as ‘Single Family Residential’ and ‘Inferred  Single Family’ and pulled respectfully from the SQL database..
+•	Looked at data dictionary, found that the column ‘regionidzip’ is the actual zip code instead what was previously thought to be represented in the ‘fips’ column. 
+•	After looking at the two tables the following columns were found to be relevant for the development of this project:
+- “””parcelid, bedroomcnt, bathroomcnt, calculatedfinishedsquarefeet, taxvaluedollarcnt, taxamount, assessmentyear, regionidcounty,regionidzip, transactiondate”””
+
+OBSERVATIONS/TAKEAWAYS:
+-This is a huge dataset, pull only the columns necessary for the project as well as those that seem fruitful in the future
+-properties_2017 will have to be left joined onto predictions_2017 with use of the primary key 'parcelid'
+-Though bedroom count, bedroom count, and area(squarefootage) may be indicative of single unit property values, the column labled "regionidcounty"
+-Area may likely be the biggest indicator of property values for single unit homes, but the zip id which appears unique would likely give us more
+-Separating the 'regionidcounty" into the three categories for evaluation of tax value would be a next step if time permits 
+
+
+
+•	Created a Nice to Have and Need to Have list
+-tax rates for each county, distributions supporting this data, calculate tax rate based off already provided data in the tax amount and tax value columns 
+
+/////make sure to include: project description, goals data dict, ideas/hypothesises, instructions to recreate the project //////////
+
+
+---------------------------------------------------
+ACQUIRE STAGE
+---------------------------------------------------
+
+#/ IMPORTS UTILIZED FOR IMPORT OF ZILLOW DATA/
+
+import pandas as pd
+import seaborn as sns
+import numpy as np
+from env import host, user, password
+import os
+
+
+•	-Two tables from SQL were imported from properties_2017 and predictions_2017 with the use of functions
+        Functions were made to access the SQL Database to retrieve the access information that is located in your env.py file for SQL access
+•	Instructions state initially this project is working with three stipulated features: bedroom count, bathroom count, and squarefootage
+•	‘regionzipid’ was chosen over fips because after looking at the data dictionary for the Zillow data. regionzipid’ was a better indicator of property location by county instead of the column ‘fips’ 
+    if time is available to review other features
+-
+•	Functions were created to connect to the SQL database, to access the Zillow database, and then finally a function to grab and save the Zillow data to a local csv file for later access. 
+    -These are found in the Acquire.py and are listed as get_db_url(), new_zillow_data(), and get_zillow_data
+•	Additionally the data dictionary for this project was retrieved from Kaggle and similarly saves locally to the directory for the project.
+•	-The imported data frame was then summarized with python methods known as .describe(), .info(), .shape()
+•	There appeared to be around sixty-six nulls, differences in value types (‘parcelid’) among comparable columns, duplicates, and whitespace
+•	Additionally, it was readily apparent column names need to be renamed for readability
+•   Additional columns for tax_rate, and tax_amount(the target) will need to be dropped and copied likely 
+
+
+
+-------------------------------------------------
+PREPARE
+-------------------------------------------------
+IMPORTS NEEDED FOR THIS STAGE:
+import acquire as a 
+import pandas as pd 
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+import seaborn as sns
+•	-Used acquire.py file to import the data locally 
+    -Summarize the data with methods such as info(), .describe()T, .shape, and .isnull().sum(), 
+            Found there to be over 60 nulls in columns 
+-Column names were renamed for readibility and better understanding
+-Whitespaces were replaced with Naan values so they could eventually be dropped as nulls
+-Duplicates were then dropped to ensure the data is clean and complete
+-All new null values were then dropped, and data was resummarized.
+With the data formatted, a for loop was constructed to iterate through all of the columns in the zillow_df  and plotted them respectfull in a histograph
+and a boxplot; except for those that would provide no informational value like parcel_id and transaction date. 
+
+-zillow_df.value_counts for the column assessment year indicated there was no significant value to the data for this project so it was dropped.
+
+REMOVE OUTLIERS:
+---------------------------
+-A function was created to remove the outliers in a dataframe, you will find it in the work book called "remove_outliers()"
+        This function iterates through list of columns provided to it and in turn removes any extreme outliers 
+
+
+ESTABLISH CAT FEATURES  AND TARGET FOR TRAIN, VALIDATE, TEST
+-Assign the categorial/ features/target (bed_count, bath_count, and area) to a df for split 
+-Ex: split_df = zillow_df[['bed_count', 'bath_count', 'area', 'tax_value']]
+
+TRAIN VALIDATE TEST:
+-Make a function that takes ina datafram and splits it into 3 samples, a test which is 20% of the entire dataframe
+-a validate, which is 24% of the entire dataframe
+-a train, which is 56% of the entire dataframe.
+
+It then splits each of the 3 samples into a dataframe with independent variables
+    and a series with the dependent, or target variable.
+    The function returns train, validate, test sets and also another 3 dataframes and 3 series:
+    X_train (df) & y_train (series), X_validate & y_validate, X_test & y_test.
+    -The target is dropped from the split_df, the other features were returned in sample sizes as follows:
+   train.shape
+    # (15687, 4)
+
+    test.shape
+    # (5603, 4)
+
+    validate.shape
+    # (6723, 4) 
+
+---------------------SCALING THE DATA:
+# # Utilized a MinMaxScaller for the data to transform each value in the column 
+# proprtionately with the desirable range 0 and 1.
+
+-Created a functuon called Min_Max_Scaler to receive the X_train, X_validate and X_test dfs with numeric values only
+    Returns scaler, X_train_scaled, X_validate_scaled, X_test_scaled dfs
+
+-Another function was made to visualized the scaled data inc omparison to the original data to compare, scaling was need to 
+ensure that a possible difference in units/values would not effect the models performance based on the data.
+
+-Each feature that was scaled beds, bath, and area were visualized individually for comparison with the data that was not
+scaled
+
+-------------------------------------------------
+EXPLORATION
+-------------------------------------------------
+-The scaled feature data was then analyzed with the use of statistical and corraltion testing 
+-The X_train_scaled and y_train colums were then put into a correlation matrix to see if there were any significant OBSERVATIONS
+in reference to the target
+Output:
+#             bed_count  bath_count   sq_feet  tax_value
+# bed_count    1.000000    0.641932  0.625294   0.283234
+# bath_count   0.641932    1.000000  0.847396   0.549609
+# sq_feet      0.625294    0.847396  1.000000   0.629578
+# tax_value    0.283234    0.549609  0.629578   1.000000
+
+-This correlation matrix was then passed through a spearman and pair plot biz's for variable exploration/correlation
+
+
+The Pearsonr statistical test was chosen as an adequate test for correlating the features with the target value 'tax_value'
+-The three possible drivers of property value were then run through the pearsonr test (bed_count, bath_count, and area)
+
+#Utilize the SciPy Stats: PearsonR  to get the correlation coefficient for area
+r, p = stats.pearsonr(X_train_scaled['sq_feet'], y_train)
+
+
+#Utilize the SciPy Stats: PearsonR  to get the correlation coefficient for bed_count
+r, p = stats.pearsonr(X_train_scaled['bed_count'], y_train)
+
+#Utilize the SciPy Stats: PearsonR  to get the correlation coefficient for bath_count
+r, p = stats.pearsonr(X_train_scaled['bath_count'], y_train)
+
+TAKEAWAYS:
+All three feature returned p-values that were in the low, qualifying  all three of the originial posed null hypothesis were rejected.
+
+
+
+----------------------------------------------------
+MODELING
+----------------------------------------------------
+####### ESTABLISH THE BASELINE FOR MODEL comparison
+#Establish whether the target can be predicted without using the features first
+#Predicting every target value to be the mean or the median 
+
+
+plt.hist(y_train)
+plt.xlabel("Property Tax )")
+plt.ylabel("amount")
+plt.show()
+
+y_train.mean()   
+y_train.median()
+
+
+# We need y_train and y_validate to be dataframes to append the new columns with predicted values. 
+y_train_df = pd.DataFrame(y_train)
+y_validate_df = pd.DataFrame(y_validate)
+
+# 1. Predict z_pred_mean
+z_pred_mean = y_train_df['tax_value'].mean()  y_train_df = target column
+y_train_df['z_pred_mean'] = z_pred_mean
+y_validate_df['z_pred_mean'] = z_pred_mean
+
+# 2. compute z_pred_median
+z_pred_median = y_train_df['tax_value'].median()
+y_train_df['z_pred_median'] = z_pred_median
+y_validate_df['z_pred_median'] = z_pred_median
+
+# 3. RMSE of z_pred_mean    #Compute the RMSE comparing actual target to z_pred_mean.
+rmse_train = mean_squared_error(y_train_df.tax_value, y_train_df.z_pred_mean)**(1/2)
+rmse_validate = mean_squared_error(y_validate_df.tax_value, y_validate_df.z_pred_mean)**(1/2)
+
+print("RMSE using Mean\nTrain/In-Sample: ", round(rmse_train, 2), 
+      "\nValidate/Out-of-Sample: ", round(rmse_validate, 2))
+
+# 4. RMSE of z_pred_median  #compute the MRSE comparing the target to the z_pred median
+rmse_train = mean_squared_error(y_train_df.tax_value, y_train_df.z_pred_median)**(1/2)
+rmse_validate = mean_squared_error(y_validate_df.tax_value, y_validate_df.z_pred_median)**(1/2)
+
+print("RMSE using Median\nTrain/In-Sample: ", round(rmse_train, 2), 
+      "\nValidate/Out-of-Sample: ", round(rmse_validate, 2))
+
+
+# RMSE using Mean
+# Train/In-Sample:  576143.18 
+# Validate/Out-of-Sample:  554977.96
+# RMSE using Median
+# Train/In-Sample:  592260.2 
+# Validate/Out-of-Sample:  567774.49
+
+-Now make a function that assigning these RMSE findings to a metric df for reference later
+def make_metric_df(y, y_pred, model_name, metric_df):
+    if metric_df.size ==0:
+        metric_df = pd.DataFrame(data=[
+            {
+                'model': model_name, 
+                'RMSE_validate': mean_squared_error(
+                    y,
+                    y_pred) ** .5,
+                'r^2_validate': explained_variance_score(
+                    y,
+                    y_pred)
+            }])
+        return metric_df
+    else:
+        return metric_df.append(
+            {
+                'model': model_name, 
+                'RMSE_validate': mean_squared_error(
+                    y,
+                    y_pred) ** .5,
+                'r^2_validate': explained_variance_score(
+                    y,
+                    y_pred)
+            }, ignore_index=True)
+
+
+# create the metric_df as a blank dataframe
+metric_df = pd.DataFrame()
+# make our first entry into the metric_df with mean baseline
+metric_df = make_metric_df(y_train_df.tax_value,
+                           y_train_df.z_pred_mean,
+                           'mean_baseline',
+                          metric_df)
+metric_df
+
+#####Do this step for both models, same steps for modeling LASSO + LARS 
+-Now that you have the baseline and model data all assigned to the metric_df, call and visualize
+
+metric_df = make_metric_df(y_validate_df.tax_value,
+               y_validate_df.z_pred_lars,
+               'lasso_alpha_1',
+               metric_df)
+metric_df
+#            model  RMSE_validate  r^2_validate
+# 0  mean_baseline  576143.179975      0.000000
+# 1  OLS Regressor  426324.522875      0.409793
+# 2  lasso_alpha_1  426316.078584      0.409817
+
+
+-- ---
+# PLOTTING  ACTUAL VS PREDICTED VALUES
+
+
+# y_validate.head()
+plt.figure(figsize=(16,8))
+plt.plot(y_validate_df.tax_value, y_validate_df.z_pred_mean, alpha=.5, color="gray", label='_nolegend_')
+plt.annotate("Baseline: Predict Using Mean", (16, 9.5))
+plt.plot(y_validate_df.tax_value, y_validate_df.tax_value, alpha=.5, color="blue", label='_nolegend_')
+plt.annotate("The Ideal Line: Predicted = Actual", (.5, 3.5), rotation=15.5)
+
+plt.scatter(y_validate_df.tax_value, y_validate_df.z_pred_lm, 
+            alpha=.5, color="red", s=100, label="Model: Linear Regression")
+plt.scatter(y_validate_df.tax_value, y_validate_df.z_pred_lars, 
+            alpha=.5, color="yellow", s=100, label="Model: LASSO + LARS")
+plt.legend()
+plt.xlabel("Actual Property Tax Value")
+plt.ylabel("Predicted Property Tax Value")
+plt.title("Model Evaluation")
+# plt.annotate("The polynomial model appears to overreact to noise", (2.0, -10))
+# plt.annotate("The OLS model (LinearRegression)\n appears to be most consistent", (15.5, 3))
+plt.show()
+
+-------------------------------------
+
+Comparing the Models 
+-------------------
+# plot to visualize actual vs predicted. 
+plt.figure(figsize=(16,8))
+plt.hist(y_validate_df.tax_value, color='blue', alpha=.5, label="Actual Property Tax Value")
+plt.hist(y_validate_df.z_pred_lm, color='red', alpha=.5, label="Model: OLS")
+plt.hist(y_validate_df.z_pred_lars, color='green', alpha=.5, label="Model: LASSO + LARS")
+plt.xlabel("Actual Property Tax Value ")
+plt.ylabel("Predicted Property Tax Value")
+plt.title("Comparing the Distribution of Actual Tax Values to Predicted for the Top Models")
+plt.legend()
+plt.show()
+
+
+########## COMPARING THE MODELS DF:
+---------------------------------
+metric_df[['model', 'RMSE_validate']]
+
+#            model  RMSE_validate
+# 0  mean_baseline  576143.179975
+# 1  OLS Regressor  426324.522875
+# 2  lasso_alpha_1  426316.078584
+
+----------------------------------
+
+# =============================================================================
+#                     MODEL SELECTION
+# =============================================================================
+#-----------------------------------------------------------------------------
+# Model Selected: lm using Linear Regression
+#-----------------------------------------------------------------------------
+y_test = pd.DataFrame(y_test)
+
+# predict on test
+y_test['z_pred_lm'] = lm.predict(X_test_scaled)
+
+# evaluate: rmse
+rmse_test = mean_squared_error(y_test.tax_value, y_test.z_pred_lm) ** (.5)
+
+print("RMSE for OLS Model using LinearRegression\nOut-of-Sample Performance: ", rmse_test)
+
+# =============================================================================
+# RMSE for OLS Model using LinearRegression
+# Out-of-Sample Performance:  436703.5099971608
+# =============================================================================
+
+
+
+
+#-----------------------------------------------------------------------------
+#Model SELECTED LASSO LARS
+#-----------------------------------------------------------------------------
+y_test = pd.DataFrame(y_test)
+
+# predict on test
+y_test['z_pred_lars'] = lars.predict(X_test_scaled)
+
+# evaluate: rmse
+rmse_test = mean_squared_error(y_test.tax_value, y_test.z_pred_lars) ** (.5)
+
+print("RMSE for LARS Model using LARSLASSO\nOut-of-Sample Performance: ", rmse_test)
+
+# =============================================================================
+# RMSE for LARS Model using LARSLASSO
+# Out-of-Sample Performance:  436702.0948379894
+# =============================================================================
+
+#Takeaways:
+    
+    #These models both perform extremely similar on the test 
+    #Both models perform better than the baseline 
+    #OLS model perform 1$ better than LARS LASSO on prediction of property values
+
+---------------------------------------------
+CONCLUSION 
+-All three features explore in comparison to the target tax_value all have positive correlations
+-The best regression model that performed on the data was the OLS regression model, barely beating LASSO + Lars
+-Tax Rate distribution was found across all three counties LA, Orange, and Venture
+-Recommendation: move forward evaluating these features for predicting property value but additionally explore other
+	possible features that strengthen the features arguments that were seen today
+
+
+
+DATA DICTIONARY 
+---------------------------------------------
+Feature	Description
+bath_count':	 	Number of bathrooms in home including fractional bathrooms
+bed_count':	 	Number of bedrooms in home 
+sq_feet'	 :		Calculated total finished living area of the home 
+'parcelid':	 	Unique identifier for parcels (lots) 
+region_id_county':	County in which the property is located
+region_id_zip':	 	Zip code in which the property is located
+tax_value':		The total tax assessed value of the parcel
+'taxamount':		The total property tax assessed for that assessment year
+assessment_year':		The year of the property tax assessment 
